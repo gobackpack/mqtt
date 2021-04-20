@@ -1,12 +1,12 @@
 ## ENV variables
 
-| ENV            | Default value |
-|:---------------|:-------------:|
-| MQTT_HOST      | localhost     |
-| MQTT_PORT      | 1883          |
-| MQTT_USERNAME  | guest         |
-| MQTT_PASSWORD  | guest         |
-| MQTT_CLIENT_ID | str.UUID()   |
+| ENV            | Default value         |
+|:---------------|:---------------------:|
+| MQTT_HOST      | localhost             |
+| MQTT_PORT      | 1883                  |
+| MQTT_USERNAME  | guest                 |
+| MQTT_PASSWORD  | guest                 |
+| MQTT_CLIENT_ID | uuid.New().String()   |
 
 ## Usage
 
