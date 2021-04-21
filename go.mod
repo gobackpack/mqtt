@@ -1,4 +1,4 @@
-module gobackpack/mqtt
+module github.com/gobackpack/mqtt
 
 go 1.16
 
