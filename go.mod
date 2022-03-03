@@ -1,8 +1,15 @@
 module github.com/gobackpack/mqtt
 
-go 1.16
+go 1.17
 
 require (
-	github.com/eclipse/paho.mqtt.golang v1.3.3
-	github.com/google/uuid v1.2.0
+	github.com/eclipse/paho.mqtt.golang v1.3.5
+	github.com/google/uuid v1.3.0
+)
+
+require (
+	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 )

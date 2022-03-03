@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// Config for MQTT connection
 type Config struct {
 	Host          string
 	Port          string
@@ -23,7 +22,6 @@ type Config struct {
 	MsgChanDept   uint
 }
 
-// NewConfig will initialize MQTT config struct
 func NewConfig() *Config {
 	host := os.Getenv("MQTT_HOST")
 	if strings.TrimSpace(host) == "" {

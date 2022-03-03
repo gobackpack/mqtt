@@ -3,22 +3,20 @@ package mqtt
 import (
 	"errors"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	mqttLib "github.com/eclipse/paho.mqtt.golang"
 )
 
-// Connection struct for MQTT
 type Connection struct {
 	Config *Config
-	Client mqtt.Client
+	Client mqttLib.Client
 }
 
-// NewConnection will initialize MQTT connection
 func NewConnection(config *Config) (*Connection, error) {
 	conn := &Connection{
 		Config: config,
 	}
 
-	opts := mqtt.NewClientOptions()
+	opts := mqttLib.NewClientOptions()
 
 	broker := conn.Config.Host + ":" + conn.Config.Port
 
@@ -31,7 +29,7 @@ func NewConnection(config *Config) (*Connection, error) {
 	opts.SetKeepAlive(conn.Config.KeepAlive)
 	opts.SetMessageChannelDepth(conn.Config.MsgChanDept)
 
-	conn.Client = mqtt.NewClient(opts)
+	conn.Client = mqttLib.NewClient(opts)
 	if token := conn.Client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, errors.New("MQTT client connection failed: " + token.Error().Error())
 	}
@@ -39,12 +37,12 @@ func NewConnection(config *Config) (*Connection, error) {
 	return conn, nil
 }
 
-// Publish payload p to topic t
-func (conn *Connection) Publish(t string, p []byte) mqtt.Token {
-	return conn.Client.Publish(t, byte(conn.Config.PubQoS), conn.Config.Retained, p)
+// Publish payload to topic
+func (conn *Connection) Publish(topic string, payload []byte) mqttLib.Token {
+	return conn.Client.Publish(topic, byte(conn.Config.PubQoS), conn.Config.Retained, payload)
 }
 
-// Subscribe to topic t
-func (conn *Connection) Subscribe(t string, callback func(c mqtt.Client, m mqtt.Message)) mqtt.Token {
-	return conn.Client.Subscribe(t, byte(conn.Config.SubQoS), callback)
+// Subscribe to topic
+func (conn *Connection) Subscribe(topic string, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
+	return conn.Client.Subscribe(topic, byte(conn.Config.SubQoS), callback)
 }

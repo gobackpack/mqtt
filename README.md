@@ -11,12 +11,12 @@
 ## Usage
 
 * **Create mqtt config**
-```
+```go
 mqttConfig := mqtt.NewConfig()
 ```
 
 * **Optionally, customize config values (*these are defaults*)**
-```
+```go
 mqttConfig.KeepAlive = time.Second * 15
 mqttConfig.CleanSession = true
 mqttConfig.AutoReconnect = true
@@ -26,24 +26,24 @@ mqttConfig.SubQoS = 0
 ```
 
 * **Create mqtt connection**
-```
-_mqtt, err := mqtt.NewConnection(mqttConfig)
+```go
+mqttConn, err := mqtt.NewConnection(mqttConfig)
 if err != nil {
     return err
 }
 ```
 
 * **Publish payload to mqtt topic**
-```
-if token := _mqtt.Publish("my/topic", []byte("message")); token.Wait() && token.Error() != nil {
+```go
+if token := mqttConn.Publish("my/topic", []byte("message")); token.Wait() && token.Error() != nil {
     log.Print("mqtt publish error: ", token.Error())
 }
 ```
 
 * **Subscribe to mqtt topic**
-```
-if token := _mqtt.Subscribe("my/topic", func(c mqtt.Client, m mqtt.Message) {
-    log.Print(m)
+```go
+if token := mqttConn.Subscribe("my/topic", func(mqttClient mqtt.Client, message mqtt.Message) {
+    log.Print(message)
 }); token.Wait() && token.Error() != nil {
     log.Print("mqtt subscribe error: ", token.Error())
 }
