@@ -66,19 +66,23 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) chan bool {
 			cancelled <- true
 		}()
 
+		go hub.listenForMessages(topic)
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				if token := hub.conn.Subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
-					hub.OnMessage <- message.Payload()
-				}); token.Wait() && token.Error() != nil {
-					hub.OnError <- token.Error()
-				}
 			}
 		}
 	}()
 
 	return cancelled
+}
+
+func (hub *Hub) listenForMessages(topic string) {
+	if token := hub.conn.Subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
+		hub.OnMessage <- message.Payload()
+	}); token.Wait() && token.Error() != nil {
+		hub.OnError <- token.Error()
+	}
 }
