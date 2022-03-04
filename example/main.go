@@ -28,20 +28,14 @@ func main() {
 	go func(subCancel context.CancelFunc) {
 		defer subCancel()
 
-		mCount := 0
 		for {
 			select {
 			case msg := <-hub.OnMessage:
 				logrus.Info("message received: ", string(msg))
-				
-				mCount++
-				if mCount == 100 { // we decide when to stop subscription
-					return
-				}
 				break
 			case err := <-hub.OnError:
 				logrus.Error(err)
-				break
+				return
 			}
 		}
 	}(subCancel)
