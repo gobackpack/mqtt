@@ -10,12 +10,38 @@
 
 ## Usage
 
-* **Create mqtt config**
 ```go
 mqttConfig := mqtt.NewConfig()
+
+hub := mqtt.NewHub(mqttConfig)
+
+hubCtx, hubCancel := context.WithCancel(context.Background())
+cancelled, err := hub.Connect(hubCtx)
+if err != nil {
+    logrus.Fatal(err)
+}
+
+wg := sync.WaitGroup{}
+wg.Add(100)
+
+for i := 0; i < 100; i++ {
+    go func(i int, wg *sync.WaitGroup) {
+        defer wg.Done()
+
+        msg := []byte(fmt.Sprintf("message %d", i))
+        hub.Publish("mytopic", msg)
+    }(i, &wg)
+}
+
+wg.Wait()
+
+hubCancel()
+<-cancelled
+close(cancelled)
 ```
 
-* **Optionally, customize config values (*these are defaults*)**
+
+* **Customize config values (*these are defaults*)**
 ```go
 mqttConfig.KeepAlive = time.Second * 15
 mqttConfig.CleanSession = true
@@ -23,28 +49,4 @@ mqttConfig.AutoReconnect = true
 mqttConfig.MsgChanDept = 100
 mqttConfig.PubQoS = 0
 mqttConfig.SubQoS = 0
-```
-
-* **Create mqtt connection**
-```go
-mqttConn, err := mqtt.NewConnection(mqttConfig)
-if err != nil {
-    return err
-}
-```
-
-* **Publish payload to mqtt topic**
-```go
-if token := mqttConn.Publish("my/topic", []byte("message")); token.Wait() && token.Error() != nil {
-    log.Print("mqtt publish error: ", token.Error())
-}
-```
-
-* **Subscribe to mqtt topic**
-```go
-if token := mqttConn.Subscribe("my/topic", func(mqttClient mqtt.Client, message mqtt.Message) {
-    log.Print(message)
-}); token.Wait() && token.Error() != nil {
-    log.Print("mqtt subscribe error: ", token.Error())
-}
 ```

@@ -1,8 +1,6 @@
 package mqtt
 
 import (
-	"errors"
-
 	mqttLib "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -11,7 +9,7 @@ type Connection struct {
 	Client mqttLib.Client
 }
 
-func NewConnection(config *Config) (*Connection, error) {
+func NewConnection(config *Config) *Connection {
 	conn := &Connection{
 		Config: config,
 	}
@@ -30,11 +28,17 @@ func NewConnection(config *Config) (*Connection, error) {
 	opts.SetMessageChannelDepth(conn.Config.MsgChanDept)
 
 	conn.Client = mqttLib.NewClient(opts)
+
+	return conn
+}
+
+// Connect to mqtt broker
+func (conn *Connection) Connect() error {
 	if token := conn.Client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, errors.New("MQTT client connection failed: " + token.Error().Error())
+		return token.Error()
 	}
 
-	return conn, nil
+	return nil
 }
 
 // Publish payload to topic
