@@ -10,6 +10,7 @@
 
 ## Usage
 
+* **Create mqtt connection**
 ```go
 mqttConfig := mqtt.NewConfig()
 
@@ -21,6 +22,51 @@ if err != nil {
     logrus.Fatal(err)
 }
 
+// pub
+// sub
+// ...
+
+<-subCancelled
+close(subCancelled)
+
+hubCancel()
+<-cancelled
+close(cancelled)
+```
+
+* **Subscribe**
+```go
+// sub
+hub.OnMessage = make(chan []byte)
+hub.OnError = make(chan error)
+subCtx, subCancel := context.WithCancel(hubCtx)
+subCancelled := hub.Subscribe(subCtx, "mytopic")
+
+go func(subCancel context.CancelFunc) {
+    defer subCancel()
+
+    mCount := 0
+    for {
+        select {
+        case msg := <-hub.OnMessage:
+            logrus.Info("message received: ", string(msg))
+			
+            mCount++
+            if mCount == 100 { // we decide when to stop subscription
+                return
+            }
+            break
+        case err := <-hub.OnError:
+            logrus.Error(err)
+            break
+        }
+    }
+}(subCancel)
+```
+
+* **Publish**
+```go
+// pub
 wg := sync.WaitGroup{}
 wg.Add(100)
 
@@ -34,12 +80,7 @@ for i := 0; i < 100; i++ {
 }
 
 wg.Wait()
-
-hubCancel()
-<-cancelled
-close(cancelled)
 ```
-
 
 * **Customize config values (*these are defaults*)**
 ```go

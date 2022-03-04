@@ -32,7 +32,6 @@ func NewConnection(config *Config) *Connection {
 	return conn
 }
 
-// Connect to mqtt broker
 func (conn *Connection) Connect() error {
 	if token := conn.Client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
@@ -41,12 +40,10 @@ func (conn *Connection) Connect() error {
 	return nil
 }
 
-// Publish payload to topic
 func (conn *Connection) Publish(topic string, payload []byte) mqttLib.Token {
 	return conn.Client.Publish(topic, byte(conn.Config.PubQoS), conn.Config.Retained, payload)
 }
 
-// Subscribe to topic
 func (conn *Connection) Subscribe(topic string, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
 	return conn.Client.Subscribe(topic, byte(conn.Config.SubQoS), callback)
 }

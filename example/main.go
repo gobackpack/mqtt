@@ -14,11 +14,39 @@ func main() {
 	hub := mqtt.NewHub(mqttConfig)
 
 	hubCtx, hubCancel := context.WithCancel(context.Background())
-	cancelled, err := hub.Connect(hubCtx)
+	hubCancelled, err := hub.Connect(hubCtx)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
+	// sub
+	hub.OnMessage = make(chan []byte)
+	hub.OnError = make(chan error)
+	subCtx, subCancel := context.WithCancel(hubCtx)
+	subCancelled := hub.Subscribe(subCtx, "mytopic")
+
+	go func(subCancel context.CancelFunc) {
+		defer subCancel()
+
+		mCount := 0
+		for {
+			select {
+			case msg := <-hub.OnMessage:
+				logrus.Info("message received: ", string(msg))
+				
+				mCount++
+				if mCount == 100 { // we decide when to stop subscription
+					return
+				}
+				break
+			case err := <-hub.OnError:
+				logrus.Error(err)
+				break
+			}
+		}
+	}(subCancel)
+
+	// pub
 	wg := sync.WaitGroup{}
 	wg.Add(100)
 
@@ -33,7 +61,10 @@ func main() {
 
 	wg.Wait()
 
+	<-subCancelled
+	close(subCancelled)
+
 	hubCancel()
-	<-cancelled
-	close(cancelled)
+	<-hubCancelled
+	close(hubCancelled)
 }
