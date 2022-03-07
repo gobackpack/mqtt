@@ -4,46 +4,46 @@ import (
 	mqttLib "github.com/eclipse/paho.mqtt.golang"
 )
 
-type Connection struct {
-	Config *Config
-	Client mqttLib.Client
+type connection struct {
+	conf   *Config
+	client mqttLib.Client
 }
 
-func NewConnection(config *Config) *Connection {
-	conn := &Connection{
-		Config: config,
+func newConnection(conf *Config) *connection {
+	conn := &connection{
+		conf: conf,
 	}
 
 	opts := mqttLib.NewClientOptions()
 
-	broker := conn.Config.Host + ":" + conn.Config.Port
+	broker := conn.conf.Host + ":" + conn.conf.Port
 
 	opts.AddBroker(broker)
-	opts.SetClientID(conn.Config.ClientID)
-	opts.SetUsername(conn.Config.Username)
-	opts.SetPassword(conn.Config.Password)
-	opts.SetCleanSession(conn.Config.CleanSession)
-	opts.SetAutoReconnect(conn.Config.AutoReconnect)
-	opts.SetKeepAlive(conn.Config.KeepAlive)
-	opts.SetMessageChannelDepth(conn.Config.MsgChanDept)
+	opts.SetClientID(conn.conf.ClientID)
+	opts.SetUsername(conn.conf.Username)
+	opts.SetPassword(conn.conf.Password)
+	opts.SetCleanSession(conn.conf.CleanSession)
+	opts.SetAutoReconnect(conn.conf.AutoReconnect)
+	opts.SetKeepAlive(conn.conf.KeepAlive)
+	opts.SetMessageChannelDepth(conn.conf.MsgChanDept)
 
-	conn.Client = mqttLib.NewClient(opts)
+	conn.client = mqttLib.NewClient(opts)
 
 	return conn
 }
 
-func (conn *Connection) Connect() error {
-	if token := conn.Client.Connect(); token.Wait() && token.Error() != nil {
+func (conn *connection) connect() error {
+	if token := conn.client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 
 	return nil
 }
 
-func (conn *Connection) Publish(topic string, payload []byte) mqttLib.Token {
-	return conn.Client.Publish(topic, byte(conn.Config.PubQoS), conn.Config.Retained, payload)
+func (conn *connection) publish(topic string, payload []byte) mqttLib.Token {
+	return conn.client.Publish(topic, byte(conn.conf.PubQoS), conn.conf.Retained, payload)
 }
 
-func (conn *Connection) Subscribe(topic string, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
-	return conn.Client.Subscribe(topic, byte(conn.Config.SubQoS), callback)
+func (conn *connection) subscribe(topic string, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
+	return conn.client.Subscribe(topic, byte(conn.conf.SubQoS), callback)
 }
