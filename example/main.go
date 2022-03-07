@@ -14,7 +14,7 @@ func main() {
 	hub := mqtt.NewHub(mqttConfig)
 
 	hubCtx, hubCancel := context.WithCancel(context.Background())
-	hubCancelled, err := hub.Connect(hubCtx)
+	hubFinished, err := hub.Connect(hubCtx)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func main() {
 	hub.OnMessage = make(chan []byte)
 	hub.OnError = make(chan error)
 	subCtx, subCancel := context.WithCancel(hubCtx)
-	subCancelled := hub.Subscribe(subCtx, "mytopic")
+	subFinished := hub.Subscribe(subCtx, "mytopic")
 
 	go func(subCancel context.CancelFunc) {
 		defer subCancel()
@@ -55,10 +55,11 @@ func main() {
 
 	wg.Wait()
 
-	<-subCancelled
-	close(subCancelled)
+	<-subFinished
+	close(subFinished)
 
 	hubCancel()
-	<-hubCancelled
-	close(hubCancelled)
+
+	<-hubFinished
+	close(hubFinished)
 }

@@ -30,11 +30,11 @@ func (hub *Hub) Connect(ctx context.Context) (chan bool, error) {
 		return nil, err
 	}
 
-	cancelled := make(chan bool)
+	finished := make(chan bool)
 
 	go func(ctx context.Context) {
 		defer func() {
-			cancelled <- true
+			finished <- true
 		}()
 
 		for {
@@ -48,7 +48,7 @@ func (hub *Hub) Connect(ctx context.Context) (chan bool, error) {
 		}
 	}(ctx)
 
-	return cancelled, nil
+	return finished, nil
 }
 
 func (hub *Hub) Publish(topic string, message []byte) {
@@ -59,11 +59,11 @@ func (hub *Hub) Publish(topic string, message []byte) {
 }
 
 func (hub *Hub) Subscribe(ctx context.Context, topic string) chan bool {
-	cancelled := make(chan bool)
+	finished := make(chan bool)
 
 	go func() {
 		defer func() {
-			cancelled <- true
+			finished <- true
 		}()
 
 		go hub.listenForMessages(topic)
@@ -76,7 +76,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) chan bool {
 		}
 	}()
 
-	return cancelled
+	return finished
 }
 
 func (hub *Hub) listenForMessages(topic string) {
