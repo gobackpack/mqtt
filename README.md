@@ -29,7 +29,6 @@ go func(ctx context.Context) {
     for {
         select {
         case msg := <-onMessage:
-            c1++
             logrus.Infof("[mytopic]: %s", string(msg))
             break
         case err := <-onError:
