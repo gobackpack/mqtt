@@ -1,4 +1,4 @@
-## ENV variables
+### ENV variables
 
 | ENV            | Default value         |
 |:---------------|:---------------------:|
@@ -8,62 +8,57 @@
 | MQTT_PASSWORD  | guest                 |
 | MQTT_CLIENT_ID | uuid.New().String()   |
 
-## Usage
+### Usage
 
-* **Create mqtt connection**
 ```go
 mqttConfig := mqtt.NewConfig()
-
 hub := mqtt.NewHub(mqttConfig)
 
 hubCtx, hubCancel := context.WithCancel(context.Background())
+defer hubCancel()
+
 hubFinished, err := hub.Connect(hubCtx)
 if err != nil {
     logrus.Fatal(err)
 }
 
-// pub
 // sub
-// ...
+subFinished, onMessage1, onError1 := hub.Subscribe(hubCtx, "mytopic")
+subFinished2, onMessage2, onError2 := hub.Subscribe(hubCtx, "mytopic2")
 
-<-subFinished
-close(subFinished)
+go func(ctx context.Context) {
+    defer func() {
+        subFinished <- true
+        subFinished2 <- true
+    }()
 
-hubCancel()
-
-<-hubFinished
-close(hubFinished)
-```
-
-* **Subscribe**
-```go
-// sub
-hub.OnMessage = make(chan []byte)
-hub.OnError = make(chan error)
-subCtx, subCancel := context.WithCancel(hubCtx)
-subFinished := hub.Subscribe(subCtx, "mytopic")
-
-go func(subCancel context.CancelFunc) {
-    defer subCancel()
-
+    c1 := 0
+    c2 := 0
     for {
         select {
-        case msg := <-hub.OnMessage:
-            logrus.Info("message received: ", string(msg))
+        case msg := <-onMessage1:
+            c1++
+            logrus.Infof("[mytopic - %d]: %s", c1, string(msg))
             break
-        case err := <-hub.OnError:
+        case err := <-onError1:
             logrus.Error(err)
+            break
+        case msg := <-onMessage2:
+            c2++
+            logrus.Infof("[mytopic2 - %d]: %s", c2, string(msg))
+            break
+        case err := <-onError2:
+            logrus.Error(err)
+            break
+        case <-ctx.Done():
             return
         }
     }
-}(subCancel)
-```
+}(hubCtx)
 
-* **Publish**
-```go
 // pub
 wg := sync.WaitGroup{}
-wg.Add(100)
+wg.Add(200)
 
 for i := 0; i < 100; i++ {
     go func(i int, wg *sync.WaitGroup) {
@@ -72,9 +67,25 @@ for i := 0; i < 100; i++ {
         msg := []byte(fmt.Sprintf("message %d", i))
         hub.Publish("mytopic", msg)
     }(i, &wg)
+
+    go func(i int, wg *sync.WaitGroup) {
+        defer wg.Done()
+
+        msg := []byte(fmt.Sprintf("message %d", i))
+        hub.Publish("mytopic2", msg)
+    }(i, &wg)
 }
 
 wg.Wait()
+
+<-subFinished
+close(subFinished)
+
+<-subFinished2
+close(subFinished2)
+
+<-hubFinished
+close(hubFinished)
 ```
 
 * **Customize config values (*these are defaults*)**

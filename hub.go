@@ -6,9 +6,6 @@ import (
 )
 
 type Hub struct {
-	OnMessage chan []byte
-	OnError   chan error
-
 	conn    *connection
 	publish chan *frame
 }
@@ -58,15 +55,21 @@ func (hub *Hub) Publish(topic string, message []byte) {
 	}
 }
 
-func (hub *Hub) Subscribe(ctx context.Context, topic string) chan bool {
+func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []byte, chan error) {
 	finished := make(chan bool)
+	onMessage := make(chan []byte)
+	onError := make(chan error)
 
-	go func() {
+	go func(ctx context.Context, onMessage chan []byte, onError chan error) {
 		defer func() {
 			finished <- true
 		}()
 
-		go hub.listenForMessages(topic)
+		if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
+			onMessage <- message.Payload()
+		}); token.Wait() && token.Error() != nil {
+			onError <- token.Error()
+		}
 
 		for {
 			select {
@@ -74,15 +77,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) chan bool {
 				return
 			}
 		}
-	}()
+	}(ctx, onMessage, onError)
 
-	return finished
-}
-
-func (hub *Hub) listenForMessages(topic string) {
-	if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
-		hub.OnMessage <- message.Payload()
-	}); token.Wait() && token.Error() != nil {
-		hub.OnError <- token.Error()
-	}
+	return finished, onMessage, onError
 }
