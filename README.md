@@ -30,7 +30,7 @@ go func(ctx context.Context) {
         select {
         case msg := <-onMessage:
             c1++
-            logrus.Infof("[mytopic - %d]: %s", c1, string(msg))
+            logrus.Infof("[mytopic]: %s", string(msg))
             break
         case err := <-onError:
             logrus.Error(err)
