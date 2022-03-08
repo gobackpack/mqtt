@@ -60,7 +60,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []
 	onMessage := make(chan []byte)
 	onError := make(chan error)
 
-	go func(ctx context.Context, onMessage chan []byte, onError chan error) {
+	go func(ctx context.Context, onFinished chan bool, onMessage chan []byte, onError chan error) {
 		defer func() {
 			finished <- true
 		}()
@@ -77,7 +77,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []
 				return
 			}
 		}
-	}(ctx, onMessage, onError)
+	}(ctx, finished, onMessage, onError)
 
 	return finished, onMessage, onError
 }
