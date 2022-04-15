@@ -38,14 +38,14 @@ func main() {
 				c1++
 				logrus.Infof("[mytopic - %d]: %s", c1, string(msg))
 				break
-			case err := <-onError1:
+			case err = <-onError1:
 				logrus.Error(err)
 				break
 			case msg := <-onMessage2:
 				c2++
 				logrus.Infof("[mytopic2 - %d]: %s", c2, string(msg))
 				break
-			case err := <-onError2:
+			case err = <-onError2:
 				logrus.Error(err)
 				break
 			case <-ctx.Done():
@@ -77,11 +77,6 @@ func main() {
 	wg.Wait()
 
 	<-subFinished
-	close(subFinished)
-
 	<-subFinished2
-	close(subFinished2)
-
 	<-hubFinished
-	close(hubFinished)
 }
