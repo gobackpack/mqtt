@@ -26,8 +26,8 @@ func main() {
 
 	go func(ctx context.Context) {
 		defer func() {
-			subFinished <- true
-			subFinished2 <- true
+			close(subFinished)
+			close(subFinished2)
 		}()
 
 		c1 := 0

@@ -31,14 +31,13 @@ func (hub *Hub) Connect(ctx context.Context) (chan bool, error) {
 
 	go func(ctx context.Context) {
 		defer func() {
-			finished <- true
+			close(finished)
 		}()
 
 		for {
 			select {
 			case fr := <-hub.publish:
 				hub.conn.publish(fr.topic, fr.payload)
-				break
 			case <-ctx.Done():
 				return
 			}
@@ -62,7 +61,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []
 
 	go func(ctx context.Context) {
 		defer func() {
-			finished <- true
+			close(finished)
 		}()
 
 		if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
