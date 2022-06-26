@@ -63,9 +63,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 	}
 
 	go func(ctx context.Context, sub *Subscriber) {
-		defer func() {
-			close(sub.Finished)
-		}()
+		defer close(sub.Finished)
 
 		if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
 			sub.OnMessage <- message.Payload()
