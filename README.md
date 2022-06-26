@@ -18,4 +18,5 @@ mqttConfig.PubQoS = 0
 mqttConfig.SubQoS = 0
 ```
 
-* [example/main.go](https://github.com/gobackpack/mqtt/blob/main/example/main.go)
+* **Subscriber:** [example/subsriber](https://github.com/gobackpack/mqtt/blob/main/example/subscriber/main.go)
+* **Publisher:** [example/publisher](https://github.com/gobackpack/mqtt/blob/main/example/publisher/main.go)
