@@ -32,6 +32,7 @@ func NewHub(conf *Config) *Hub {
 	}
 }
 
+// Connect to MQTT server
 func (hub *Hub) Connect(ctx context.Context) error {
 	if err := hub.conn.connect(); err != nil {
 		return err
@@ -43,6 +44,7 @@ func (hub *Hub) Connect(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
+				hub.conn.client.Disconnect(1000)
 				return
 			}
 		}
@@ -51,13 +53,8 @@ func (hub *Hub) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (hub *Hub) Publish(topic string, message []byte, pub *Publisher) {
-	pub.publish <- &frame{
-		topic:   topic,
-		payload: message,
-	}
-}
-
+// Subscribe will create MQTT subscriber and listen for messages.
+// Messages and errors are sent to OnMessage and OnError channels.
 func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 	sub := &Subscriber{
 		OnMessage: make(chan []byte),
@@ -87,6 +84,9 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 	return sub
 }
 
+// Publisher will create MQTT publisher and listener for messages to be published.
+// All messages to be published are sent through private publish channel.
+// Errors will be sent to OnError channel.
 func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 	pub := &Publisher{
 		OnError: make(chan error),
@@ -107,4 +107,12 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 	}(ctx, pub)
 
 	return pub
+}
+
+// Publish message to topic private pub.publish channel.
+func (hub *Hub) Publish(topic string, message []byte, pub *Publisher) {
+	pub.publish <- &frame{
+		topic:   topic,
+		payload: message,
+	}
 }
