@@ -3,10 +3,21 @@ package mqtt
 import (
 	"context"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/sirupsen/logrus"
 )
 
 type Hub struct {
-	conn    *connection
+	conn *connection
+}
+
+type Subscriber struct {
+	OnMessage chan []byte
+	OnError   chan error
+	Finished  chan bool
+}
+
+type Publisher struct {
+	OnError chan error
 	publish chan *frame
 }
 
@@ -17,57 +28,52 @@ type frame struct {
 
 func NewHub(conf *Config) *Hub {
 	return &Hub{
-		conn:    newConnection(conf),
-		publish: make(chan *frame),
+		conn: newConnection(conf),
 	}
 }
 
-func (hub *Hub) Connect(ctx context.Context) (chan bool, error) {
+func (hub *Hub) Connect(ctx context.Context) error {
 	if err := hub.conn.connect(); err != nil {
-		return nil, err
+		return err
 	}
 
-	finished := make(chan bool)
-
 	go func(ctx context.Context) {
-		defer func() {
-			close(finished)
-		}()
+		defer logrus.Warn("hub closed MQTT connection")
 
 		for {
 			select {
-			case fr := <-hub.publish:
-				hub.conn.publish(fr.topic, fr.payload)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}(ctx)
 
-	return finished, nil
+	return nil
 }
 
-func (hub *Hub) Publish(topic string, message []byte) {
-	hub.publish <- &frame{
+func (hub *Hub) Publish(topic string, message []byte, pub *Publisher) {
+	pub.publish <- &frame{
 		topic:   topic,
 		payload: message,
 	}
 }
 
-func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []byte, chan error) {
-	finished := make(chan bool)
-	onMessage := make(chan []byte)
-	onError := make(chan error)
+func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
+	sub := &Subscriber{
+		OnMessage: make(chan []byte),
+		OnError:   make(chan error),
+		Finished:  make(chan bool),
+	}
 
-	go func(ctx context.Context) {
+	go func(ctx context.Context, sub *Subscriber) {
 		defer func() {
-			close(finished)
+			close(sub.Finished)
 		}()
 
 		if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
-			onMessage <- message.Payload()
+			sub.OnMessage <- message.Payload()
 		}); token.Wait() && token.Error() != nil {
-			onError <- token.Error()
+			sub.OnError <- token.Error()
 		}
 
 		for {
@@ -76,7 +82,29 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) (chan bool, chan []
 				return
 			}
 		}
-	}(ctx)
+	}(ctx, sub)
 
-	return finished, onMessage, onError
+	return sub
+}
+
+func (hub *Hub) Publisher(ctx context.Context) *Publisher {
+	pub := &Publisher{
+		OnError: make(chan error),
+		publish: make(chan *frame),
+	}
+
+	go func(ctx context.Context, pub *Publisher) {
+		for {
+			select {
+			case fr := <-pub.publish:
+				if token := hub.conn.publish(fr.topic, fr.payload); token.Wait() && token.Error() != nil {
+					pub.OnError <- token.Error()
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx, pub)
+
+	return pub
 }

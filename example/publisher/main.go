@@ -15,39 +15,20 @@ func main() {
 	hubCtx, hubCancel := context.WithCancel(context.Background())
 	defer hubCancel()
 
-	hubFinished, err := hub.Connect(hubCtx)
-	if err != nil {
+	if err := hub.Connect(hubCtx); err != nil {
 		logrus.Fatal(err)
 	}
 
-	// sub
-	subFinished, onMessage1, onError1 := hub.Subscribe(hubCtx, "mytopic")
-	subFinished2, onMessage2, onError2 := hub.Subscribe(hubCtx, "mytopic2")
+	pub1 := hub.Publisher(hubCtx)
+	pub2 := hub.Publisher(hubCtx)
 
 	go func(ctx context.Context) {
-		defer func() {
-			close(subFinished)
-			close(subFinished2)
-		}()
-
-		c1 := 0
-		c2 := 0
 		for {
 			select {
-			case msg := <-onMessage1:
-				c1++
-				logrus.Infof("[mytopic - %d]: %s", c1, string(msg))
-				break
-			case err = <-onError1:
+			case err := <-pub1.OnError:
 				logrus.Error(err)
-				break
-			case msg := <-onMessage2:
-				c2++
-				logrus.Infof("[mytopic2 - %d]: %s", c2, string(msg))
-				break
-			case err = <-onError2:
+			case err := <-pub2.OnError:
 				logrus.Error(err)
-				break
 			case <-ctx.Done():
 				return
 			}
@@ -63,20 +44,16 @@ func main() {
 			defer wg.Done()
 
 			msg := []byte(fmt.Sprintf("message %d", i))
-			hub.Publish("mytopic", msg)
+			hub.Publish("mytopic", msg, pub1)
 		}(i, &wg)
 
 		go func(i int, wg *sync.WaitGroup) {
 			defer wg.Done()
 
 			msg := []byte(fmt.Sprintf("message %d", i))
-			hub.Publish("mytopic2", msg)
+			hub.Publish("mytopic2", msg, pub2)
 		}(i, &wg)
 	}
 
 	wg.Wait()
-
-	<-subFinished
-	<-subFinished2
-	<-hubFinished
 }
