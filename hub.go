@@ -109,7 +109,8 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 	return pub
 }
 
-// Publish message to topic private pub.publish channel.
+// Publish message to topic through private pub.publish channel.
+// Thread-safe.
 func (hub *Hub) Publish(topic string, message []byte, pub *Publisher) {
 	pub.publish <- &frame{
 		topic:   topic,
