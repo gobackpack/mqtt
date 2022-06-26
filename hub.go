@@ -84,7 +84,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 	return sub
 }
 
-// Publisher will create MQTT publisher and listener for messages to be published.
+// Publisher will create MQTT publisher and private listener for messages to be published.
 // All messages to be published are sent through private publish channel.
 // Errors will be sent to OnError channel.
 func (hub *Hub) Publisher(ctx context.Context) *Publisher {
