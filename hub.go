@@ -4,12 +4,10 @@ import (
 	"context"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 type Hub struct {
 	conn *connection
-	l    sync.RWMutex
 }
 
 type Subscriber struct {
