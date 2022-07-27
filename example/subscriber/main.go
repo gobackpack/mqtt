@@ -24,30 +24,53 @@ func main() {
 	sub1 := hub.Subscribe(hubCtx, "mytopic")
 	sub2 := hub.Subscribe(hubCtx, "mytopic2")
 
-	go func(ctx context.Context) {
-		c1 := 0
-		c2 := 0
+	// handle messages and errors for sub1
+	go func(ctx context.Context, sub1 *mqtt.Subscriber) {
+		defer logrus.Warn("sub1 message handler and error listener stopped")
+
+		c := 0
 		for {
 			select {
-			case msg := <-sub1.OnMessage:
-				c1++
-				logrus.Infof("[mytopic - %d]: %s", c1, string(msg))
-				break
-			case err := <-sub1.OnError:
+			case msg, ok := <-sub1.OnMessage:
+				if !ok {
+					return
+				}
+				c++
+				logrus.Infof("[mytopic - %d]: %s", c, string(msg))
+			case err, ok := <-sub1.OnError:
+				if !ok {
+					return
+				}
 				logrus.Error(err)
-				break
-			case msg := <-sub2.OnMessage:
-				c2++
-				logrus.Infof("[mytopic2 - %d]: %s", c2, string(msg))
-				break
-			case err := <-sub2.OnError:
-				logrus.Error(err)
-				break
 			case <-ctx.Done():
 				return
 			}
 		}
-	}(hubCtx)
+	}(hubCtx, sub1)
+
+	// handle messages and errors for sub2
+	go func(ctx context.Context, sub2 *mqtt.Subscriber) {
+		defer logrus.Warn("sub2 message handler and error listener stopped")
+
+		c := 0
+		for {
+			select {
+			case msg, ok := <-sub2.OnMessage:
+				if !ok {
+					return
+				}
+				c++
+				logrus.Infof("[mytopic2 - %d]: %s", c, string(msg))
+			case err, ok := <-sub2.OnError:
+				if !ok {
+					return
+				}
+				logrus.Error(err)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(hubCtx, sub2)
 
 	logrus.Info("listening for messages...")
 

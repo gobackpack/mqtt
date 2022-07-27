@@ -4,16 +4,18 @@ import (
 	"context"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
 type Hub struct {
 	conn *connection
+	l    sync.RWMutex
 }
 
 type Subscriber struct {
 	OnMessage chan []byte
 	OnError   chan error
-	Finished  chan bool
+	token     mqtt.Token
 }
 
 type Publisher struct {
@@ -59,22 +61,26 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 	sub := &Subscriber{
 		OnMessage: make(chan []byte),
 		OnError:   make(chan error),
-		Finished:  make(chan bool),
 	}
 
 	go func(ctx context.Context, sub *Subscriber) {
-		defer close(sub.Finished)
-
-		if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
-			sub.OnMessage <- message.Payload()
-		}); token.Wait() && token.Error() != nil {
-			sub.OnError <- token.Error()
-		}
+		defer func() {
+			close(sub.OnMessage)
+			close(sub.OnError)
+		}()
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
+			default:
+				if sub.token = hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
+					if payload := message.Payload(); len(payload) > 0 {
+						sub.OnMessage <- payload
+					}
+				}); sub.token.Wait() && sub.token.Error() != nil {
+					sub.OnError <- sub.token.Error()
+				}
 			}
 		}
 	}(ctx, sub)
@@ -92,6 +98,8 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 	}
 
 	go func(ctx context.Context, pub *Publisher) {
+		defer close(pub.OnError)
+
 		for {
 			select {
 			case fr := <-pub.publish:
@@ -109,7 +117,7 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 
 // Publish message to topic through private pub.publish channel.
 // Thread-safe.
-func (hub *Hub) Publish(topic string, message []byte, pub *Publisher) {
+func (pub *Publisher) Publish(topic string, message []byte) {
 	pub.publish <- &frame{
 		topic:   topic,
 		payload: message,
