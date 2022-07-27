@@ -13,7 +13,6 @@ type Hub struct {
 type Subscriber struct {
 	OnMessage chan []byte
 	OnError   chan error
-	token     mqtt.Token
 }
 
 type Publisher struct {
@@ -72,12 +71,12 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 			case <-ctx.Done():
 				return
 			default:
-				if sub.token = hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
+				if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
 					if payload := message.Payload(); len(payload) > 0 {
 						sub.OnMessage <- payload
 					}
-				}); sub.token.Wait() && sub.token.Error() != nil {
-					sub.OnError <- sub.token.Error()
+				}); token.Wait() && token.Error() != nil {
+					sub.OnError <- token.Error()
 				}
 			}
 		}
