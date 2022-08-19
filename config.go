@@ -13,8 +13,6 @@ type Config struct {
 	Username      string
 	Password      string
 	ClientID      string
-	PubQoS        int
-	SubQoS        int
 	CleanSession  bool
 	AutoReconnect bool
 	Retained      bool
@@ -54,8 +52,6 @@ func NewConfig() *Config {
 		Username:      username,
 		Password:      password,
 		ClientID:      clientId,
-		PubQoS:        0,
-		SubQoS:        0,
 		CleanSession:  true,
 		AutoReconnect: true,
 		Retained:      false,

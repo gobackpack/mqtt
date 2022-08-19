@@ -40,10 +40,10 @@ func (conn *connection) connect() error {
 	return nil
 }
 
-func (conn *connection) publish(topic string, payload []byte) mqttLib.Token {
-	return conn.client.Publish(topic, byte(conn.conf.PubQoS), conn.conf.Retained, payload)
+func (conn *connection) publish(topic string, qos byte, payload []byte) mqttLib.Token {
+	return conn.client.Publish(topic, qos, conn.conf.Retained, payload)
 }
 
-func (conn *connection) subscribe(topic string, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
-	return conn.client.Subscribe(topic, byte(conn.conf.SubQoS), callback)
+func (conn *connection) subscribe(topic string, qos byte, callback func(mqttClient mqttLib.Client, message mqttLib.Message)) mqttLib.Token {
+	return conn.client.Subscribe(topic, qos, callback)
 }

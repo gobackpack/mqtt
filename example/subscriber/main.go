@@ -21,8 +21,8 @@ func main() {
 	}
 
 	// sub
-	sub1 := hub.Subscribe(hubCtx, "mytopic")
-	sub2 := hub.Subscribe(hubCtx, "mytopic2")
+	sub1 := hub.Subscribe(hubCtx, "mytopic", mqtt.DefaultSubQoS)
+	sub2 := hub.Subscribe(hubCtx, "mytopic2", mqtt.DefaultSubQoS)
 
 	// handle messages and errors for sub1
 	go func(ctx context.Context, sub1 *mqtt.Subscriber) {

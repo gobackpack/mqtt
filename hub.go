@@ -6,6 +6,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	DefaultPubQoS = 0
+	DefaultSubQoS = 0
+)
+
 type Hub struct {
 	conn *connection
 }
@@ -22,6 +27,7 @@ type Publisher struct {
 
 type frame struct {
 	topic   string
+	qos     int
 	payload []byte
 }
 
@@ -54,7 +60,7 @@ func (hub *Hub) Connect(ctx context.Context) error {
 
 // Subscribe will create MQTT subscriber and listen for messages.
 // Messages and errors are sent to OnMessage and OnError channels.
-func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
+func (hub *Hub) Subscribe(ctx context.Context, topic string, qos int) *Subscriber {
 	sub := &Subscriber{
 		OnMessage: make(chan []byte),
 		OnError:   make(chan error),
@@ -71,7 +77,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string) *Subscriber {
 			case <-ctx.Done():
 				return
 			default:
-				if token := hub.conn.subscribe(topic, func(mqttClient mqtt.Client, message mqtt.Message) {
+				if token := hub.conn.subscribe(topic, byte(qos), func(mqttClient mqtt.Client, message mqtt.Message) {
 					if payload := message.Payload(); len(payload) > 0 {
 						sub.OnMessage <- payload
 					}
@@ -100,7 +106,7 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 		for {
 			select {
 			case fr := <-pub.publish:
-				if token := hub.conn.publish(fr.topic, fr.payload); token.Wait() && token.Error() != nil {
+				if token := hub.conn.publish(fr.topic, byte(fr.qos), fr.payload); token.Wait() && token.Error() != nil {
 					pub.OnError <- token.Error()
 				}
 			case <-ctx.Done():
@@ -114,9 +120,10 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 
 // Publish message to topic through private pub.publish channel.
 // Thread-safe.
-func (pub *Publisher) Publish(topic string, message []byte) {
+func (pub *Publisher) Publish(topic string, qos int, message []byte) {
 	pub.publish <- &frame{
 		topic:   topic,
+		qos:     qos,
 		payload: message,
 	}
 }

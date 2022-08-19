@@ -49,17 +49,18 @@ func main() {
 
 	// pub
 	wg := sync.WaitGroup{}
-	wg.Add(200)
+	delta := 1000
+	wg.Add(delta * 2)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < delta; i++ {
 		go func(i int, wg *sync.WaitGroup) {
 			defer wg.Done()
-			pub1.Publish("mytopic", []byte(fmt.Sprintf("message %d", i)))
+			pub1.Publish("mytopic", mqtt.DefaultPubQoS, []byte(fmt.Sprintf("message %d", i)))
 		}(i, &wg)
 
 		go func(i int, wg *sync.WaitGroup) {
 			defer wg.Done()
-			pub2.Publish("mytopic2", []byte(fmt.Sprintf("message %d", i)))
+			pub2.Publish("mytopic2", mqtt.DefaultPubQoS, []byte(fmt.Sprintf("message %d", i)))
 		}(i, &wg)
 	}
 
