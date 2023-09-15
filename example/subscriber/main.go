@@ -25,12 +25,14 @@ func main() {
 	sub2 := hub.Subscribe(hubCtx, "mytopic2", mqtt.DefaultSubQoS)
 
 	// handle messages and errors for sub1
-	go func(ctx context.Context, sub1 *mqtt.Subscriber) {
+	go func(sub1 *mqtt.Subscriber) {
 		defer logrus.Warn("sub1 message handler and error listener stopped")
 
 		c := 0
 		for {
 			select {
+			case <-hubCtx.Done():
+				return
 			case msg, ok := <-sub1.OnMessage:
 				if !ok {
 					return
@@ -42,19 +44,19 @@ func main() {
 					return
 				}
 				logrus.Error(err)
-			case <-ctx.Done():
-				return
 			}
 		}
-	}(hubCtx, sub1)
+	}(sub1)
 
 	// handle messages and errors for sub2
-	go func(ctx context.Context, sub2 *mqtt.Subscriber) {
+	go func(sub2 *mqtt.Subscriber) {
 		defer logrus.Warn("sub2 message handler and error listener stopped")
 
 		c := 0
 		for {
 			select {
+			case <-hubCtx.Done():
+				return
 			case msg, ok := <-sub2.OnMessage:
 				if !ok {
 					return
@@ -66,11 +68,9 @@ func main() {
 					return
 				}
 				logrus.Error(err)
-			case <-ctx.Done():
-				return
 			}
 		}
-	}(hubCtx, sub2)
+	}(sub2)
 
 	logrus.Info("listening for messages...")
 

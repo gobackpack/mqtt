@@ -43,7 +43,7 @@ func (hub *Hub) Connect(ctx context.Context) error {
 		return err
 	}
 
-	go func(ctx context.Context) {
+	go func(hub *Hub) {
 		defer logrus.Warn("hub closed MQTT connection")
 
 		for {
@@ -53,7 +53,7 @@ func (hub *Hub) Connect(ctx context.Context) error {
 				return
 			}
 		}
-	}(ctx)
+	}(hub)
 
 	return nil
 }
@@ -66,7 +66,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string, qos int) *Subscribe
 		OnError:   make(chan error),
 	}
 
-	go func(ctx context.Context, sub *Subscriber) {
+	go func(hub *Hub, sub *Subscriber, topic string, qos int) {
 		defer func() {
 			close(sub.OnMessage)
 			close(sub.OnError)
@@ -86,7 +86,7 @@ func (hub *Hub) Subscribe(ctx context.Context, topic string, qos int) *Subscribe
 				}
 			}
 		}
-	}(ctx, sub)
+	}(hub, sub, topic, qos)
 
 	return sub
 }
@@ -100,7 +100,7 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 		publish: make(chan *frame),
 	}
 
-	go func(ctx context.Context, pub *Publisher) {
+	go func(hub *Hub, pub *Publisher) {
 		defer close(pub.OnError)
 
 		for {
@@ -113,7 +113,7 @@ func (hub *Hub) Publisher(ctx context.Context) *Publisher {
 				return
 			}
 		}
-	}(ctx, pub)
+	}(hub, pub)
 
 	return pub
 }

@@ -26,11 +26,13 @@ func main() {
 	pub2 := hub.Publisher(hubCtx)
 
 	// listen for errors
-	go func(ctx context.Context) {
+	go func() {
 		defer logrus.Warn("errors listener finished")
 
 		for {
 			select {
+			case <-hubCtx.Done():
+				return
 			case err, ok := <-pub1.OnError:
 				if !ok {
 					return
@@ -41,11 +43,9 @@ func main() {
 					return
 				}
 				logrus.Error(err)
-			case <-ctx.Done():
-				return
 			}
 		}
-	}(hubCtx)
+	}()
 
 	// pub
 	wg := sync.WaitGroup{}
